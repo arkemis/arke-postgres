@@ -18,6 +18,7 @@ defmodule ArkePostgres.ArkeUnit do
   alias Arke.Utils.ErrorGenerator, as: Error
 
   @record_fields [:id, :data, :metadata, :inserted_at, :updated_at]
+  @chunk_size 5000
 
   def insert(project, arke, unit_list, opts \\ []) do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
@@ -44,19 +45,26 @@ defmodule ArkePostgres.ArkeUnit do
         ])
       end)
 
-    case(
-      ArkePostgres.Repo.insert_all(
-        ArkePostgres.Tables.ArkeUnit,
-        records,
-        prefix: project,
-        returning: true
-      )
-    ) do
-      {0, _} ->
+    {total_count, all_inserted} =
+      Stream.chunk_every(records, @chunk_size)
+      |> Enum.reduce({0, []}, fn chunk, {count_acc, inserted_acc} ->
+        case ArkePostgres.Repo.insert_all(
+               ArkePostgres.Tables.ArkeUnit,
+               chunk,
+               prefix: project,
+               returning: true
+             ) do
+          {chunk_count, chunk_inserted} ->
+            {count_acc + chunk_count, inserted_acc ++ chunk_inserted}
+        end
+      end)
+
+    case total_count do
+      0 ->
         {:error, Error.create(:insert, "no records inserted")}
 
-      {count, inserted} ->
-        inserted_ids = Enum.map(inserted, & &1.id)
+      count ->
+        inserted_ids = Enum.map(all_inserted, & &1.id)
 
         {valid, errors} =
           Enum.split_with(updated_unit_list, fn unit ->
@@ -89,19 +97,28 @@ defmodule ArkePostgres.ArkeUnit do
         }
       end)
 
-    case ArkePostgres.Repo.insert_all(
-           ArkePostgres.Tables.ArkeUnit,
-           records,
-           prefix: project,
-           on_conflict: {:replace_all_except, [:id]},
-           conflict_target: :id,
-           returning: true
-         ) do
-      {0, _} ->
+    {total_count, all_updated} =
+      Stream.chunk_every(records, @chunk_size)
+      |> Enum.reduce({0, []}, fn chunk, {count_acc, updated_acc} ->
+        case ArkePostgres.Repo.insert_all(
+               ArkePostgres.Tables.ArkeUnit,
+               chunk,
+               prefix: project,
+               on_conflict: {:replace_all_except, [:id]},
+               conflict_target: :id,
+               returning: true
+             ) do
+          {chunk_count, chunk_updated} ->
+            {count_acc + chunk_count, updated_acc ++ chunk_updated}
+        end
+      end)
+
+    case total_count do
+      0 ->
         {:error, Error.create(:update, "no records updated")}
 
-      {count, updated} ->
-        updated_ids = Enum.map(updated, & &1.id)
+      count ->
+        updated_ids = Enum.map(all_updated, & &1.id)
 
         {valid, errors} =
           Enum.split_with(unit_list, fn unit ->
@@ -122,12 +139,23 @@ defmodule ArkePostgres.ArkeUnit do
         where: a.id in ^Enum.map(unit_list, &Atom.to_string(&1.id))
       )
 
-    case ArkePostgres.Repo.delete_all(query, prefix: project) do
-      {0, nil} ->
-        Error.create(:delete, "item not found")
+    {total_count, _} =
+      Stream.chunk_every(Enum.map(unit_list, &Atom.to_string(&1.id)), @chunk_size)
+      |> Enum.reduce({0, nil}, fn chunk, {count_acc, _} ->
+        query =
+          from(a in "arke_unit",
+            where: a.arke_id == ^Atom.to_string(arke.id),
+            where: a.id in ^chunk
+          )
 
-      _ ->
-        {:ok, nil}
+        case ArkePostgres.Repo.delete_all(query, prefix: project) do
+          {chunk_count, nil} -> {count_acc + chunk_count, nil}
+        end
+      end)
+
+    case total_count do
+      0 -> Error.create(:delete, "item not found")
+      _ -> {:ok, nil}
     end
   end
 
