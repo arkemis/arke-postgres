@@ -27,6 +27,8 @@ defmodule ArkePostgres.Tables.ArkeUnit do
     timestamps()
   end
 
+  # TODO: add insert_all validation
+
   def changeset(args \\ []) do
     %__MODULE__{}
     |> cast(args, @arke_record_fields)

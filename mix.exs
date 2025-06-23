@@ -1,7 +1,7 @@
 defmodule ArkePostgres.MixProject do
   use Mix.Project
 
-  @version "0.3.6"
+  @version "0.3.7"
   @scm_url "https://github.com/arkemishub/arke-postgres"
   @site_url "https://arkehub.com"
 
@@ -19,7 +19,8 @@ defmodule ArkePostgres.MixProject do
       description: description(),
       package: package(),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      versioning: versioning()
     ]
   end
 
@@ -28,6 +29,14 @@ defmodule ArkePostgres.MixProject do
     [
       extra_applications: [:logger],
       mod: {ArkePostgres.Application, []}
+    ]
+  end
+  defp versioning do
+    [
+      tag_prefix: "v",
+      commit_msg: "v%s",
+      annotation: "tag release-%s created with mix_version",
+      annotate: true
     ]
   end
 

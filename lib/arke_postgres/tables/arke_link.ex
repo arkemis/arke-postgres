@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule ArkePostgres.ArkeLink do
+defmodule ArkePostgres.Tables.ArkeLink do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -20,11 +20,13 @@ defmodule ArkePostgres.ArkeLink do
 
   @foreign_key_type :string
   schema "arke_link" do
-    field(:type, :string, default: "link")
-    belongs_to(:parent_id, ArkePostgres.ArkeUnit, primary_key: true)
-    belongs_to(:child_id, ArkePostgres.ArkeUnit, primary_key: true)
+    field(:type, :string, default: "link", primary_key: true)
+    belongs_to(:parent, ArkePostgres.ArkeUnit, primary_key: true, foreign_key: :parent_id)
+    belongs_to(:child, ArkePostgres.ArkeUnit, primary_key: true, foreign_key: :child_id)
     field(:metadata, :map, default: %{})
   end
+
+  # TODO: add insert_all validation
 
   def changeset(args \\ []) do
     %__MODULE__{}
