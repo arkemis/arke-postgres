@@ -22,7 +22,7 @@ defmodule ArkePostgres.Query do
         %{filters: filters, orders: orders, offset: offset, limit: limit} = arke_query,
         action
       ) do
-    paths = extract_paths(filters) ++ extract_paths(orders)
+    paths = extract_paths(filters ++ orders)
 
     base_query(arke_query, action)
     |> handle_paths_join(paths)
@@ -316,7 +316,6 @@ defmodule ArkePostgres.Query do
   defp handle_paths_join(query, paths) do
     paths
     # dedupe based on the first parameter id that will be used to join
-    |> Enum.uniq_by(fn [%{id: id} | _] -> id end)
     |> Enum.reduce(query, &build_join/2)
   end
 
@@ -329,7 +328,7 @@ defmodule ArkePostgres.Query do
     items
     |> Enum.flat_map(&extract_path/1)
     |> Enum.reject(&(is_nil(&1) or length(&1) == 0))
-    |> Enum.uniq()
+    |> Enum.uniq_by(fn [%{id: id} | _] -> id end)
   end
 
   def extract_path(%Arke.Core.Query.Filter{base_filters: base_filters}),
