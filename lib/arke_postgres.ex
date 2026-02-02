@@ -20,8 +20,10 @@ defmodule ArkePostgres do
     case check_env() do
       {:ok, nil} ->
         try do
+          projects =
+            Query.get_project_record()
+            |> Enum.sort_by(&(to_string(&1.id) == "arke_system"), :desc)
 
-          projects =Query.get_project_record() |> Enum.sort_by(&(to_string(&1.id) == "arke_system"),:desc)
           Enum.each(projects, fn %{id: project_id} = _project ->
             start_managers(project_id)
           end)
@@ -29,14 +31,25 @@ defmodule ArkePostgres do
           :ok
         rescue
           err in DBConnection.ConnectionError ->
-            %{message: message,reason: reason} = err
-            parsed_message = %{context: "db_connection_error", message: "error: #{err}, msg: #{message}"}
-            IO.inspect(parsed_message,syntax_colors: [string: :red,atom: :cyan, ])
+            %{message: message, reason: reason} = err
+
+            parsed_message = %{
+              context: "db_connection_error",
+              message: "error: #{err}, msg: #{message}"
+            }
+
+            IO.inspect(parsed_message, syntax_colors: [string: :red, atom: :cyan])
             :error
+
           err in Postgrex.Error ->
-            %{message: message,postgres: %{code: code, message: postgres_message}} = err
-            parsed_message = %{context: "postgrex_error", message: "#{message || postgres_message}"}
-            IO.inspect(parsed_message,syntax_colors: [string: :red,atom: :cyan, ])
+            %{message: message, postgres: %{code: code, message: postgres_message}} = err
+
+            parsed_message = %{
+              context: "postgrex_error",
+              message: "#{message || postgres_message}"
+            }
+
+            IO.inspect(parsed_message, syntax_colors: [string: :red, atom: :cyan])
             :error
         end
 
@@ -69,18 +82,20 @@ defmodule ArkePostgres do
     end
   end
 
-  defp start_managers(project_id) when is_binary(project_id), do: start_managers(String.to_atom(project_id))
+  defp start_managers(project_id) when is_binary(project_id),
+    do: start_managers(String.to_atom(project_id))
+
   defp start_managers(project_id) do
     {parameters, arke_list, groups} = Query.get_manager_units(project_id)
 
-    Arke.handle_manager(parameters,project_id,:parameter)
-    Arke.handle_manager(arke_list,project_id,:arke)
-    Arke.handle_manager(groups,project_id,:group)
-
+    Arke.handle_manager(parameters, project_id, :parameter)
+    Arke.handle_manager(arke_list, project_id, :arke)
+    Arke.handle_manager(groups, project_id, :group)
   end
 
   def create(project, %{arke_id: arke_id} = unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
+
     case handle_create(project, arke, unit) do
       {:ok, unit} ->
         {:ok,
@@ -149,6 +164,42 @@ defmodule ArkePostgres do
     {:error, "arke type not supported"}
   end
 
+  def update_key(%{arke_id: arke_id, metadata: %{project: project}} = old_unit, new_unit) do
+    arke = Arke.Boundary.ArkeManager.get(arke_id, project)
+    {:ok, unit} = handle_update_key(arke, old_unit, new_unit)
+  end
+
+  def handle_update_key(
+        %{data: %{type: "table"}} = arke,
+        _old_unit,
+        %{data: data, metadata: %{project: project} = metadata} = new_unit
+      ) do
+    data =
+      new_unit
+      |> filter_primary_keys(false)
+      # todo: remove once the project is not needed anymore
+      |> Map.merge(%{metadata: Map.delete(metadata, :project)})
+      |> data_as_klist
+
+    where = new_unit |> filter_primary_keys(true) |> data_as_klist
+
+    Table.update(project, arke, data, where)
+    {:ok, new_unit}
+  end
+
+  def handle_update_key(
+        %{data: %{type: "arke"}} = arke,
+        old_unit,
+        new_unit
+      ) do
+    ArkeUnit.update_key(arke, old_unit, new_unit)
+    {:ok, new_unit}
+  end
+
+  def handle_update_key(_arke, _old_unit, _new_unit) do
+    {:error, "arke type not supported"}
+  end
+
   def delete(project, %{arke_id: arke_id} = unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
     handle_delete(project, arke, unit)
@@ -204,7 +255,8 @@ defmodule ArkePostgres do
     Enum.to_list(data)
   end
 
-  defp handle_changeset_errros(errors)when is_binary(errors), do: errors
+  defp handle_changeset_errros(errors) when is_binary(errors), do: errors
+
   defp handle_changeset_errros(errors) do
     Enum.map(errors, fn {field, detail} ->
       "#{field}: #{render_detail(detail)}"
@@ -234,15 +286,17 @@ defmodule ArkePostgres do
         IO.inspect("DBConnection.ConnectionError")
         %{message: message} = err
         parsed_message = %{context: "db_connection_error", message: "#{message}"}
-        IO.inspect(parsed_message,syntax_colors: [string: :red,atom: :cyan, ])
+        IO.inspect(parsed_message, syntax_colors: [string: :red, atom: :cyan])
         :error
+
       err in Postgrex.Error ->
         IO.inspect("Postgrex.Error")
-        %{message: message,postgres: %{code: code, message: postgres_message}} = err
+        %{message: message, postgres: %{code: code, message: postgres_message}} = err
         parsed_message = %{context: "postgrex_error", message: "#{message || postgres_message}"}
-        IO.inspect(parsed_message,syntax_colors: [string: :red,atom: :cyan, ])
+        IO.inspect(parsed_message, syntax_colors: [string: :red, atom: :cyan])
         :error
-        err ->
+
+      err ->
         IO.inspect("uncatched error")
         IO.inspect(err)
         :error
