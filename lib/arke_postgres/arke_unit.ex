@@ -14,7 +14,7 @@
 
 defmodule ArkePostgres.ArkeUnit do
   alias Arke.Boundary.ArkeManager
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
   alias Arke.Utils.ErrorGenerator, as: Error
 
   @record_fields [:id, :data, :metadata, :inserted_at, :updated_at]
@@ -57,6 +57,48 @@ defmodule ArkePostgres.ArkeUnit do
     ]
 
     query = from("arke_unit", where: ^where, update: [set: ^row])
+    ArkePostgres.Repo.update_all(query, [], prefix: project)
+  end
+
+  def update_key(
+        arke,
+        old_unit,
+        %{data: data, metadata: %{project: project} = metadata} = unit,
+        where \\ []
+      ) do
+    where = Keyword.put_new(where, :arke_id, Atom.to_string(unit.arke_id))
+    where = Keyword.put_new(where, :id, Atom.to_string(unit.id))
+
+    diff_keys = diff_keys(old_unit.data, data, Map.keys(data))
+
+    encoded_data = encode_unit_data(arke, diff_keys)
+
+    # Build the jsonb_set operations for each changed key
+    data_dynamic =
+      Enum.reduce(encoded_data, dynamic([u], u.data), fn {param_id, new_value}, acc ->
+        dynamic(
+          [u],
+          fragment(
+            "jsonb_set(?, ?, ?::jsonb, true)",
+            ^acc,
+            ^[to_string(param_id)],
+            ^new_value
+          )
+        )
+      end)
+
+    query =
+      from(u in "arke_unit",
+        where: ^where,
+        update: [
+          set: [
+            data: ^data_dynamic,
+            metadata: ^Map.delete(unit.metadata, "project"),
+            updated_at: ^unit.updated_at
+          ]
+        ]
+      )
+
     ArkePostgres.Repo.update_all(query, [], prefix: project)
   end
 
@@ -129,5 +171,15 @@ defmodule ArkePostgres.ArkeUnit do
   defp pop_map(data, key) do
     {map, data} = Map.pop(data, key, %{})
     {map || %{}, data}
+  end
+
+  def diff_keys(old_data, new_data, keys) do
+    Enum.reduce(new_data, [], fn {key, value}, acc ->
+      if key in keys and old_data[key] != value do
+        [{key, value}] ++ acc
+      else
+        acc
+      end
+    end)
   end
 end
