@@ -354,12 +354,13 @@ defmodule ArkePostgres.Query do
     do: Enum.reduce(filters, clause, &handle_clause(&1, &2, parent_logic))
 
   defp handle_clause(
-         %Arke.Core.Query.Filter{logic: logic, base_filters: nested_filters},
+         %Arke.Core.Query.Filter{logic: logic, negate: negate, base_filters: nested_filters},
          clause,
          parent_logic
        ),
        do:
          handle_condition(nil, logic, nested_filters)
+         |> handle_negate_condition(negate || false)
          |> add_condition_to_clause(clause, parent_logic)
 
   defp handle_clause(
