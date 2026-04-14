@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Checkout fetch-depth by @ilyichv
+
+## [0.5.0] - 2026-04-14
+
+### Added
+- Add git cliff by @ilyichv
+
+### Changed
+- Update arke to v0.6.0 by @ilyichv
+- Update_key which run jsonbset by @ErikFerrari
+- Nested logic operators by @ilyichv
+
 ## [0.4.1] - 2025-09-08
 
 ### Fixed
@@ -219,6 +234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### New Contributors
 * @ErikFerrari made their first contribution
 
+[unreleased]: https://github.com/arkemishub/arke-postgres/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/arkemishub/arke-postgres/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/arkemishub/arke-postgres/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/arkemishub/arke-postgres/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/arkemishub/arke-postgres/compare/v0.3.6...v0.3.7
