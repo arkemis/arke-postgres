@@ -44,7 +44,7 @@ defmodule ArkePostgres.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     List.flatten([
-      {:ecto_sql, "~> 3.11.0"},
+      {:ecto_sql, "~> 3.13.5"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.2"},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
