@@ -1,6 +1,6 @@
 # ArkePostgres
 
-![Postgress](https://github.com/arkemishub/arke-postgres/assets/81776297/adc5e8e4-cab2-44a5-9177-2ced28a3dfbc)
+![Postgress](https://github.com/arkemis/arke-postgres/assets/81776297/adc5e8e4-cab2-44a5-9177-2ced28a3dfbc)
 
 ## Installation
 
@@ -18,4 +18,3 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/arke_postgres](https://hexdocs.pm/arke_postgres).
-
