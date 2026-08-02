@@ -7,10 +7,9 @@ defmodule ArkePostgres.QueryTest do
   SQL fragments, not whole statements, so they survive Ecto formatting changes.
   """
 
-  use ExUnit.Case, async: false
+  use ArkePostgres.RepoCase
 
-  alias Arke.Boundary.{ArkeManager, ParameterManager}
-  alias Arke.QueryManager
+  alias Arke.Boundary.ParameterManager
 
   defp base, do: QueryManager.query(project: :test_schema, arke: ArkeManager.get(:arke, :arke_system))
 
@@ -133,6 +132,94 @@ defmodule ArkePostgres.QueryTest do
 
       assert sql =~ "ORDER BY"
       assert sql =~ "DESC"
+    end
+  end
+
+  describe "execute/2" do
+    setup do
+      arke = create_arke(:query_exec_arke, :query_exec_label)
+      create_unit(arke, "query_exec_a", %{query_exec_label: "alpha"})
+      create_unit(arke, "query_exec_b", %{query_exec_label: "beta"})
+      %{arke: arke}
+    end
+
+    test "all returns every unit of the arke", %{arke: arke} do
+      units = QueryManager.query(project: @project, arke: arke) |> QueryManager.all()
+
+      assert ids(units) == ["query_exec_a", "query_exec_b"]
+    end
+
+    test "count matches the number of units", %{arke: arke} do
+      assert QueryManager.query(project: @project, arke: arke) |> QueryManager.count() == 2
+    end
+
+    test "one returns a single unit", %{arke: arke} do
+      unit =
+        QueryManager.query(project: @project, arke: arke)
+        |> QueryManager.where(id: "query_exec_a")
+        |> QueryManager.one()
+
+      assert to_string(unit.id) == "query_exec_a"
+    end
+
+    test "one returns nil when nothing matches", %{arke: arke} do
+      unit =
+        QueryManager.query(project: @project, arke: arke)
+        |> QueryManager.where(id: "query_exec_absent")
+        |> QueryManager.one()
+
+      assert unit == nil
+    end
+  end
+
+  describe "get_column/2" do
+    test "reads an arke parameter out of the data blob" do
+      column = ArkePostgres.Query.get_column(param(:label))
+
+      assert inspect(column) =~ "data"
+    end
+
+    test "reads a table column directly" do
+      column = ArkePostgres.Query.get_column(param(:id))
+
+      refute inspect(column) =~ "->"
+    end
+  end
+
+  describe "extract_path/1" do
+    test "returns the path of a base filter" do
+      condition = QueryManager.condition(param(:label), :eq, "x", false)
+
+      assert ArkePostgres.Query.extract_path(condition) == [[]]
+    end
+
+    test "returns nothing for anything else" do
+      assert ArkePostgres.Query.extract_path(:not_a_filter) == []
+    end
+  end
+
+  describe "remove_arke_system/2" do
+    test "keeps metadata untouched for arke_system" do
+      metadata = %{"project" => "arke_system"}
+
+      assert ArkePostgres.Query.remove_arke_system(metadata, :arke_system) == metadata
+    end
+
+    test "strips the project when it points at arke_system" do
+      assert ArkePostgres.Query.remove_arke_system(%{"project" => "arke_system"}, :test_schema) ==
+               %{}
+    end
+
+    test "keeps a project that is not arke_system" do
+      metadata = %{"project" => "test_schema"}
+
+      assert ArkePostgres.Query.remove_arke_system(metadata, :test_schema) == metadata
+    end
+  end
+
+  describe "init_unit/3" do
+    test "returns nil for a missing record" do
+      assert ArkePostgres.Query.init_unit(nil, nil, @project) == nil
     end
   end
 end

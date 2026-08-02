@@ -7,6 +7,7 @@ config :arke_postgres, ArkePostgres.Repo,
   password: System.get_env("DB_PASSWORD") || "postgres",
   database: System.get_env("DB_NAME") || "arke_postgres_test",
   hostname: System.get_env("DB_HOSTNAME") || "localhost",
+  pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10
 
 config :arke,
