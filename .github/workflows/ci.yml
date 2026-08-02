@@ -61,8 +61,6 @@ jobs:
         run: mix hex.build
       - name: Run tests
         run: mix test
-        # todo: remove after tests are added
-        continue-on-error: true
         env:
           MIX_ENV: test
           DB_HOSTNAME: localhost
