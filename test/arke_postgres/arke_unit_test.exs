@@ -37,10 +37,16 @@ defmodule ArkePostgres.ArkeUnitTest do
       unit = Arke.Core.Unit.load(arke, id: "arke_unit_update", arke_unit_label: "before")
       {:ok, _} = ArkeUnit.insert(@project, arke, unit)
 
-      updated = Arke.Core.Unit.update(unit, arke_unit_label: "after", updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second))
+      updated =
+        Arke.Core.Unit.update(unit,
+          arke_unit_label: "after",
+          updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        )
+
       ArkeUnit.update(@project, arke, updated)
 
-      assert QueryManager.get_by(id: :arke_unit_update, project: @project).data.arke_unit_label == "after"
+      assert QueryManager.get_by(id: :arke_unit_update, project: @project).data.arke_unit_label ==
+               "after"
     end
   end
 
@@ -75,7 +81,9 @@ defmodule ArkePostgres.ArkeUnitTest do
 
   describe "decode_unit_data/1" do
     test "unwraps the stored value envelope" do
-      assert ArkeUnit.decode_unit_data(%{"label" => %{"value" => "hello"}}) == %{"label" => "hello"}
+      assert ArkeUnit.decode_unit_data(%{"label" => %{"value" => "hello"}}) == %{
+               "label" => "hello"
+             }
     end
 
     test "keeps a bare value as is" do
@@ -94,7 +102,10 @@ defmodule ArkePostgres.ArkeUnitTest do
 
   describe "encode_unit_data/2" do
     test "keeps a declared parameter", %{arke: arke} do
-      assert Map.has_key?(ArkeUnit.encode_unit_data(arke, %{arke_unit_label: "hello"}), "arke_unit_label")
+      assert Map.has_key?(
+               ArkeUnit.encode_unit_data(arke, %{arke_unit_label: "hello"}),
+               "arke_unit_label"
+             )
     end
 
     test "drops an undeclared parameter", %{arke: arke} do

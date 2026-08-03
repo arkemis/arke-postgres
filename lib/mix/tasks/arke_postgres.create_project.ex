@@ -68,20 +68,24 @@ defmodule Mix.Tasks.ArkePostgres.CreateProject do
     ArkePostgres.create_project(%{arke_id: :arke_project, id: id})
 
     Mix.shell().info("--- Creating arke_project for #{id}--- ")
-    label = opts[:label] || String.capitalize(id) |> String.replace("_"," ") |> String.trim
-    description =  opts[:description] || "Arke for the schema #{id}"
-    now =  Arke.Utils.DatetimeHandler.now(:datetime)
-    data = %{label: %{value: label, datetime: now },
-      description: %{value: description, datetime: now } ,
-      type: %{value: "postgres_schema", datetime: now },
-    persistence: %{value: "arke_parameter", datetime: now }}
+    label = opts[:label] || String.capitalize(id) |> String.replace("_", " ") |> String.trim()
+    description = opts[:description] || "Arke for the schema #{id}"
+    now = Arke.Utils.DatetimeHandler.now(:datetime)
+
+    data = %{
+      label: %{value: label, datetime: now},
+      description: %{value: description, datetime: now},
+      type: %{value: "postgres_schema", datetime: now},
+      persistence: %{value: "arke_parameter", datetime: now}
+    }
+
     row = [
       id: id,
       arke_id: "arke_project",
       data: data,
       metadata: %{},
       inserted_at: now,
-      updated_at:  now
+      updated_at: now
     ]
 
     case ArkePostgres.Repo.insert(ArkePostgres.Tables.ArkeUnit.changeset(Enum.into(row, %{})),
@@ -104,6 +108,7 @@ defmodule Mix.Tasks.ArkePostgres.CreateProject do
   defp parse_args(args) do
     {options, _} =
       OptionParser.parse!(args, strict: [id: :string, label: :string, description: :string])
+
     options
   end
 end

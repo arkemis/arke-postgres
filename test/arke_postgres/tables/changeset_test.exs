@@ -29,7 +29,6 @@ defmodule ArkePostgres.Tables.ChangesetTest do
     end
   end
 
-
   describe "ArkeSchema.changeset/1" do
     test "rejects an empty row" do
       refute ArkePostgres.Tables.ArkeSchema.changeset(%{}).valid?

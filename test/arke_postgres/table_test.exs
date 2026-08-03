@@ -24,7 +24,6 @@ defmodule ArkePostgres.TableTest do
   end
 
   test "insert then get_by returns the row" do
-
     assert {1, _} = Table.insert(@project, @schema, row("table_insert"))
 
     row = Table.get_by(@project, @schema, @fields, id: "table_insert")
@@ -38,7 +37,6 @@ defmodule ArkePostgres.TableTest do
   end
 
   test "get_all returns every matching row" do
-
     Table.insert(@project, @schema, row("table_all_1"))
     Table.insert(@project, @schema, row("table_all_2"))
 
@@ -55,7 +53,6 @@ defmodule ArkePostgres.TableTest do
   end
 
   test "update changes only the matching row" do
-
     Table.insert(@project, @schema, row("table_update", %{"k" => "before"}))
     Table.insert(@project, @schema, row("table_untouched", %{"k" => "before"}))
 
@@ -70,7 +67,6 @@ defmodule ArkePostgres.TableTest do
   end
 
   test "delete removes the row" do
-
     Table.insert(@project, @schema, row("table_delete"))
     assert Table.get_by(@project, @schema, @fields, id: "table_delete") != nil
 
