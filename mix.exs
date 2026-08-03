@@ -1,7 +1,7 @@
 defmodule ArkePostgres.MixProject do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.5.1"
   @scm_url "https://github.com/arkemis/arke-postgres"
   @site_url "https://arkehub.com"
 
@@ -62,7 +62,7 @@ defmodule ArkePostgres.MixProject do
     [
       # This option is only needed when you don't want to use the OTP application name
       name: "arke_postgres",
-      # These are the default files included in the package
+      files: ~w(lib priv mix.exs README* LICENSE* CHANGELOG* usage-rules.md usage-rules),
       licenses: ["Apache-2.0"],
       links: %{
         "Website" => @site_url,
