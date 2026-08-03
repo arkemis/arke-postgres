@@ -80,7 +80,10 @@ defmodule ArkePostgres.RepoCase do
 
   defp count_of(relation, where, params) do
     %{rows: [[count]]} =
-      ArkePostgres.Repo.query!("SELECT count(*) FROM information_schema.#{relation} WHERE #{where}", params)
+      ArkePostgres.Repo.query!(
+        "SELECT count(*) FROM information_schema.#{relation} WHERE #{where}",
+        params
+      )
 
     count
   end

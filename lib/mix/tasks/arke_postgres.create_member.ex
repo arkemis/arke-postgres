@@ -41,14 +41,14 @@ defmodule Mix.Tasks.ArkePostgres.CreateMember do
     project: :string,
     username: :string,
     password: :string,
-  email: :string
+    email: :string
   ]
 
   @impl true
   def run(argv) do
     case ArkePostgres.check_env() do
       {:ok, _} ->
-        [:postgrex, :ecto_sql, :arke_auth, :arke,:arke_postgres]
+        [:postgrex, :ecto_sql, :arke_auth, :arke, :arke_postgres]
         |> Enum.each(&Application.ensure_all_started/1)
 
         case ArkePostgres.Repo.start_link() do
@@ -73,47 +73,53 @@ defmodule Mix.Tasks.ArkePostgres.CreateMember do
         Mix.Tasks.Help.run(["arke_postgres.create_member"])
 
       {data, _opts} ->
-      project = Keyword.fetch!(data,:project)
-      username = Keyword.get(data,:username,"admin")
-      password = Keyword.get(data,:password,"admin")
-      check_user(String.to_atom(project),username,password,data)
-
-      end
+        project = Keyword.fetch!(data, :project)
+        username = Keyword.get(data, :username, "admin")
+        password = Keyword.get(data, :password, "admin")
+        check_user(String.to_atom(project), username, password, data)
+    end
   end
 
-  defp check_user(project_id,username,password,opts)do
+  defp check_user(project_id, username, password, opts) do
     case QueryManager.get_by(project: :arke_system, arke_id: :user, username: username) do
-      nil -> create_user(project_id,username,password,opts)
-      %Arke.Core.Unit{}=user ->  create_member(project_id,user)
+      nil -> create_user(project_id, username, password, opts)
+      %Arke.Core.Unit{} = user -> create_member(project_id, user)
     end
   end
 
-  defp create_user(project_id,username,password,opts) do
+  defp create_user(project_id, username, password, opts) do
     user_model = ArkeManager.get(:user, :arke_system)
-    email = Keyword.get(opts,:email,"#{username}@bar.com")
-    data = %{username: username,password: password,email: email,type: "super_admin"}
-    with {:ok,user} <- QueryManager.create(:arke_system, user_model,data),
-         {:ok,_member} <- create_member(project_id,user)  do
-      IO.inspect("member #{username} created",syntax_colors: [string: :cyan])
-      :ok
-    else {:error,msg} ->
-    IO.inspect(msg)
-      :ok
-    end
+    email = Keyword.get(opts, :email, "#{username}@bar.com")
+    data = %{username: username, password: password, email: email, type: "super_admin"}
 
+    with {:ok, user} <- QueryManager.create(:arke_system, user_model, data),
+         {:ok, _member} <- create_member(project_id, user) do
+      IO.inspect("member #{username} created", syntax_colors: [string: :cyan])
+      :ok
+    else
+      {:error, msg} ->
+        IO.inspect(msg)
+        :ok
+    end
   end
 
-  defp create_member(project_id,user) do
-    case  ArkeManager.get(:super_admin,project_id) do
+  defp create_member(project_id, user) do
+    case ArkeManager.get(:super_admin, project_id) do
       nil ->
-        IO.inspect("super_admin is missing",syntax_colors: [string: :red])
+        IO.inspect("super_admin is missing", syntax_colors: [string: :red])
         :ok
-     model ->
-        case  QueryManager.get_by(project: project_id, arke_id: :super_admin, arke_system_user: user.id) do
+
+      model ->
+        case QueryManager.get_by(
+               project: project_id,
+               arke_id: :super_admin,
+               arke_system_user: user.id
+             ) do
           nil ->
-            QueryManager.create(project_id,model, arke_system_user: user.id)
+            QueryManager.create(project_id, model, arke_system_user: user.id)
+
           _ ->
-            IO.inspect("member already exists",syntax_colors: [string: :red])
+            IO.inspect("member already exists", syntax_colors: [string: :red])
             :ok
         end
     end

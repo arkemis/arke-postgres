@@ -33,18 +33,22 @@ defmodule ArkePostgres.PersistenceTest do
     test "writes the new value", %{arke: arke} do
       {:ok, unit} = ArkePostgres.create(@project, unit_for(arke, "persist_update"))
 
-      {:ok, _} = ArkePostgres.update(@project, Arke.Core.Unit.update(unit, persistence_label: "after"))
+      {:ok, _} =
+        ArkePostgres.update(@project, Arke.Core.Unit.update(unit, persistence_label: "after"))
 
-      assert QueryManager.get_by(id: :persist_update, project: @project).data.persistence_label == "after"
+      assert QueryManager.get_by(id: :persist_update, project: @project).data.persistence_label ==
+               "after"
     end
 
     test "leaves other units alone", %{arke: arke} do
       {:ok, unit} = ArkePostgres.create(@project, unit_for(arke, "persist_update_a"))
       {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "persist_update_b", "before"))
 
-      {:ok, _} = ArkePostgres.update(@project, Arke.Core.Unit.update(unit, persistence_label: "after"))
+      {:ok, _} =
+        ArkePostgres.update(@project, Arke.Core.Unit.update(unit, persistence_label: "after"))
 
-      assert QueryManager.get_by(id: :persist_update_b, project: @project).data.persistence_label == "before"
+      assert QueryManager.get_by(id: :persist_update_b, project: @project).data.persistence_label ==
+               "before"
     end
   end
 

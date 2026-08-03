@@ -11,7 +11,8 @@ defmodule ArkePostgres.QueryTest do
 
   alias Arke.Boundary.ParameterManager
 
-  defp base, do: QueryManager.query(project: :test_schema, arke: ArkeManager.get(:arke, :arke_system))
+  defp base,
+    do: QueryManager.query(project: :test_schema, arke: ArkeManager.get(:arke, :arke_system))
 
   defp param(id), do: ParameterManager.get(id, :arke_system)
 
