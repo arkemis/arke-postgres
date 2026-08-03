@@ -49,7 +49,6 @@ defmodule ArkePostgres.MixProject do
       {:jason, "~> 1.2"},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.10", only: :test},
       {:arke, "~> 0.6.0"}
     ])
   end
