@@ -23,6 +23,26 @@ defmodule ArkePostgres.ArkeUnitTest do
       assert is_binary(record.id)
     end
 
+    test "generates a lowercase, dash-separated v1 uuid when the unit has no id", %{arke: arke} do
+      unit = Arke.Core.Unit.load(arke, id: nil, arke_unit_label: "hello")
+
+      assert {:ok, record} = ArkeUnit.insert(@project, arke, unit)
+
+      assert String.length(record.id) == 36
+      assert record.id =~ ~r/^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    end
+
+    test "generates a distinct id per insert", %{arke: arke} do
+      ids =
+        for _ <- 1..5 do
+          unit = Arke.Core.Unit.load(arke, id: nil, arke_unit_label: "hello")
+          {:ok, record} = ArkeUnit.insert(@project, arke, unit)
+          record.id
+        end
+
+      assert length(Enum.uniq(ids)) == 5
+    end
+
     test "returns changeset errors for a duplicate id", %{arke: arke} do
       unit = Arke.Core.Unit.load(arke, id: "arke_unit_dup", arke_unit_label: "hello")
       {:ok, _} = ArkeUnit.insert(@project, arke, unit)
