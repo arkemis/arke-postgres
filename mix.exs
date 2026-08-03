@@ -20,8 +20,31 @@ defmodule ArkePostgres.MixProject do
       package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      elixirc_paths: elixirc_paths(Mix.env()),
+      aliases: aliases(),
       versioning: versioning()
     ]
+  end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  defp aliases do
+    [
+      test: [
+        "ecto.drop -r ArkePostgres.Repo",
+        "ecto.create -r ArkePostgres.Repo",
+        &seed_test_db/1,
+        "test"
+      ]
+    ]
+  end
+
+  defp seed_test_db(_args) do
+    for project <- ["arke_system", "test_schema"] do
+      Mix.Task.rerun("arke_postgres.create_project", ["--id", project])
+      Mix.Task.rerun("arke.seed_project", ["--project", project])
+    end
   end
 
   # Run "mix help compile.app" to learn about applications.
@@ -49,7 +72,7 @@ defmodule ArkePostgres.MixProject do
       {:jason, "~> 1.2"},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:arke, "~> 0.6.0"}
+      {:arke, "~> 0.7.0"}
     ])
   end
 
