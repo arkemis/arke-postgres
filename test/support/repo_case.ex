@@ -9,6 +9,9 @@ defmodule ArkePostgres.RepoCase do
   DDL cannot run inside the sandbox transaction, and checking out with `sandbox: false`
   fights the shared owner. Tag a test `:unboxed` to put the repo in `:auto` for its
   duration instead, and clean up after it by hand.
+
+  No query here emits an `ORDER BY` unless the test asks for one, so row order is whatever
+  Postgres returns. Sort every multi-row assertion, through `ids/1` or `Enum.sort/1`.
   """
 
   use ExUnit.CaseTemplate
