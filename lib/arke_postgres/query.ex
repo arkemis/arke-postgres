@@ -62,7 +62,7 @@ defmodule ArkePostgres.Query do
 
   def remove_arke_system(metadata, project_id) when project_id == :arke_system, do: metadata
 
-  def remove_arke_system(metadata, project_id) do
+  def remove_arke_system(metadata, _project_id) do
     case Map.get(metadata, "project") do
       "arke_system" -> Map.delete(metadata, "project")
       _ -> metadata
@@ -120,7 +120,7 @@ defmodule ArkePostgres.Query do
   end
 
   def get_project_record() do
-    unit_list =
+    _unit_list =
       from(q in base_query(), where: q.arke_id == "arke_project")
       |> ArkePostgres.Repo.all(prefix: "arke_system")
   end
@@ -213,7 +213,7 @@ defmodule ArkePostgres.Query do
   ######################################################################################################################
   # PRIVATE FUNCTIONS ##################################################################################################
   ######################################################################################################################
-  defp base_query(%{arke: %{data: %{type: "table"}, id: id} = arke} = _arke_query, action),
+  defp base_query(%{arke: %{data: %{type: "table"}, id: _id} = arke} = _arke_query, action),
     do: table_query(arke, action)
 
   defp base_query(%{link: nil} = _arke_query, action), do: arke_query(action)
@@ -258,7 +258,7 @@ defmodule ArkePostgres.Query do
   defp arke_query(:count), do: from("arke_unit", select: count("*"))
   defp arke_query(_action), do: from("arke_unit", select: ^@record_fields)
 
-  defp table_query(%{id: id, data: data} = arke, action) do
+  defp table_query(%{id: id, data: data} = _arke, _action) do
     table_name = Atom.to_string(id)
 
     fields =
@@ -278,13 +278,13 @@ defmodule ArkePostgres.Query do
   defp get_arke(project, %{arke_id: arke_id}, nil),
     do: Arke.Boundary.ArkeManager.get(String.to_existing_atom(arke_id), project)
 
-  defp get_arke(project, %{arke_id: arke_id}, arke) when is_atom(arke),
+  defp get_arke(project, %{arke_id: _arke_id}, arke) when is_atom(arke),
     do: Arke.Boundary.ArkeManager.get(arke, project)
 
-  defp get_arke(project, %{arke_id: arke_id}, arke) when is_binary(arke),
+  defp get_arke(project, %{arke_id: _arke_id}, arke) when is_binary(arke),
     do: Arke.Boundary.ArkeManager.get(String.to_existing_atom(arke), project)
 
-  defp get_arke(_, %{arke_id: arke_id}, arke), do: arke
+  defp get_arke(_, %{arke_id: _arke_id}, arke), do: arke
   defp get_arke(_, _data, arke), do: arke
 
   defp generate_units(data, arke, project) do
@@ -395,7 +395,7 @@ defmodule ArkePostgres.Query do
 
   defp handle_clause(_, clause, _), do: clause
 
-  defp parameter_condition(clause, parameter, value, operator, negate, logic, join_alias \\ nil) do
+  defp parameter_condition(_clause, parameter, value, operator, negate, _logic, join_alias \\ nil) do
     column = get_column(parameter, join_alias)
     value = get_value(parameter, value)
 
@@ -611,10 +611,12 @@ defmodule ArkePostgres.Query do
   defp get_value(parameter, value) when is_atom(value) and not is_boolean(value),
     do: get_value(parameter, Atom.to_string(value))
 
-  defp get_value(%{id: id, arke_id: :string} = _parameter, value) when is_binary(value), do: value
-  defp get_value(%{id: id, arke_id: :string} = _parameter, value), do: Kernel.inspect(value)
+  defp get_value(%{id: _id, arke_id: :string} = _parameter, value) when is_binary(value),
+    do: value
 
-  defp get_value(%{id: id, arke_id: :integer} = _parameter, value) when is_number(value),
+  defp get_value(%{id: _id, arke_id: :string} = _parameter, value), do: Kernel.inspect(value)
+
+  defp get_value(%{id: _id, arke_id: :integer} = _parameter, value) when is_number(value),
     do: value
 
   defp get_value(%{id: id, arke_id: :integer} = _parameter, value) when is_binary(value) do
@@ -624,10 +626,10 @@ defmodule ArkePostgres.Query do
     end
   end
 
-  defp get_value(%{id: id, arke_id: :integer} = parameter, value) when is_list(value),
+  defp get_value(%{id: _id, arke_id: :integer} = parameter, value) when is_list(value),
     do: parse_number_list(parameter, value, fn v -> is_integer(v) end)
 
-  defp get_value(%{id: id, arke_id: :float} = _parameter, value) when is_number(value), do: value
+  defp get_value(%{id: _id, arke_id: :float} = _parameter, value) when is_number(value), do: value
 
   defp get_value(%{id: id, arke_id: :float} = _parameter, value) when is_binary(value) do
     case Float.parse(value) do
@@ -636,19 +638,19 @@ defmodule ArkePostgres.Query do
     end
   end
 
-  defp get_value(%{id: id, arke_id: :float} = parameter, value) when is_list(value),
+  defp get_value(%{id: _id, arke_id: :float} = parameter, value) when is_list(value),
     do: parse_number_list(parameter, value, fn v -> is_number(v) end)
 
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, true), do: true
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, "true"), do: true
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, "True"), do: true
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, 1), do: true
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, "1"), do: true
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, false), do: false
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, "false"), do: false
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, "False"), do: false
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, 0), do: false
-  defp get_value(%{id: id, arke_id: :boolean} = _parameter, "0"), do: false
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, true), do: true
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, "true"), do: true
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, "True"), do: true
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, 1), do: true
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, "1"), do: true
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, false), do: false
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, "false"), do: false
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, "False"), do: false
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, 0), do: false
+  defp get_value(%{id: _id, arke_id: :boolean} = _parameter, "0"), do: false
 
   defp get_value(%{id: id, arke_id: :boolean} = _parameter, _),
     do: raise("Parameter(#{id}) value not valid")
@@ -674,11 +676,11 @@ defmodule ArkePostgres.Query do
     end
   end
 
-  defp get_value(%{id: id, arke_id: :dict} = _parameter, value), do: value
-  defp get_value(%{id: id, arke_id: :list} = _parameter, value), do: value
-  defp get_value(%{id: id, arke_id: :link} = _parameter, value), do: value
-  defp get_value(%{id: id, arke_id: :dynamic} = _parameter, value), do: value
-  defp get_value(%{id: id}, value), do: raise("Parameter(#{id}) value not valid")
+  defp get_value(%{id: _id, arke_id: :dict} = _parameter, value), do: value
+  defp get_value(%{id: _id, arke_id: :list} = _parameter, value), do: value
+  defp get_value(%{id: _id, arke_id: :link} = _parameter, value), do: value
+  defp get_value(%{id: _id, arke_id: :dynamic} = _parameter, value), do: value
+  defp get_value(%{id: id}, _value), do: raise("Parameter(#{id}) value not valid")
 
   defp parse_number_list(parameter, value, func) do
     case Enum.all?(value, &is_binary(&1)) do
@@ -708,7 +710,7 @@ defmodule ArkePostgres.Query do
         fragment("? IS NULL AND (?.data \\? ?)", ^column, j, ^Atom.to_string(id))
       )
 
-  defp get_nil_query(%{id: id} = _parameter, column, true, _join_alias),
+  defp get_nil_query(%{id: _id} = _parameter, column, true, _join_alias),
     do:
       dynamic(
         [q],
@@ -718,40 +720,43 @@ defmodule ArkePostgres.Query do
   defp filter_query_by_operator(%{data: %{multiple: true}}, column, value, :eq),
     do: dynamic([q], fragment("jsonb_exists(?, ?)", ^column, ^value))
 
-  defp filter_query_by_operator(parameter, column, value, :eq),
+  defp filter_query_by_operator(_parameter, column, value, :eq),
     do: dynamic([q], ^column == ^value)
 
-  defp filter_query_by_operator(parameter, column, value, :contains),
+  defp filter_query_by_operator(_parameter, column, value, :contains),
     do: dynamic([q], like(^column, fragment("?", ^("%" <> value <> "%"))))
 
-  defp filter_query_by_operator(parameter, column, value, :icontains),
+  defp filter_query_by_operator(_parameter, column, value, :icontains),
     do: dynamic([q], ilike(^column, fragment("?", ^("%" <> value <> "%"))))
 
-  defp filter_query_by_operator(parameter, column, value, :endswith),
+  defp filter_query_by_operator(_parameter, column, value, :endswith),
     do: dynamic([q], like(^column, fragment("?", ^("%" <> value))))
 
-  defp filter_query_by_operator(parameter, column, value, :iendswith),
+  defp filter_query_by_operator(_parameter, column, value, :iendswith),
     do: dynamic([q], ilike(^column, fragment("?", ^("%" <> value))))
 
-  defp filter_query_by_operator(parameter, column, value, :startswith),
+  defp filter_query_by_operator(_parameter, column, value, :startswith),
     do: dynamic([q], like(^column, fragment("?", ^(value <> "%"))))
 
-  defp filter_query_by_operator(parameter, column, value, :istartswith),
+  defp filter_query_by_operator(_parameter, column, value, :istartswith),
     do: dynamic([q], ilike(^column, fragment("?", ^(value <> "%"))))
 
-  defp filter_query_by_operator(parameter, column, value, :lte),
+  defp filter_query_by_operator(_parameter, column, value, :lte),
     do: dynamic([q], ^column <= ^value)
 
-  defp filter_query_by_operator(parameter, column, value, :lt), do: dynamic([q], ^column < ^value)
-  defp filter_query_by_operator(parameter, column, value, :gt), do: dynamic([q], ^column > ^value)
+  defp filter_query_by_operator(_parameter, column, value, :lt),
+    do: dynamic([q], ^column < ^value)
 
-  defp filter_query_by_operator(parameter, column, value, :gte),
+  defp filter_query_by_operator(_parameter, column, value, :gt),
+    do: dynamic([q], ^column > ^value)
+
+  defp filter_query_by_operator(_parameter, column, value, :gte),
     do: dynamic([q], ^column >= ^value)
 
-  defp filter_query_by_operator(parameter, column, value, :in),
+  defp filter_query_by_operator(_parameter, column, value, :in),
     do: dynamic([q], ^column in ^value)
 
-  defp filter_query_by_operator(parameter, column, value, _), do: dynamic([q], ^column == ^value)
+  defp filter_query_by_operator(_parameter, column, value, _), do: dynamic([q], ^column == ^value)
 
   # defp filter_query_by_operator(query, key, value, "between"), do: from q in query, where: column_table(q, ^key) == ^value
 
@@ -806,9 +811,6 @@ defmodule ArkePostgres.Query do
   defp get_where_condition_by_type(condition, type),
     do: dynamic([a, cte], ^condition and cte.type == ^type)
 
-  defp get_where_field_by_direction(:parent),
-    do: dynamic([a, cte], a.id == fragment("?", field(cte, ^:parent_id)))
-
   defp get_link_query(:count, project, unit_id_list, link_field, tree_field, depth, where_field) do
     from(a in "arke_unit",
       left_join:
@@ -828,6 +830,7 @@ defmodule ArkePostgres.Query do
           literal(^tree_field),
           ^depth
         ),
+      on: true,
       where: ^where_field,
       select: count([a.id, cte.starting_unit], :distinct)
     )
@@ -854,6 +857,7 @@ defmodule ArkePostgres.Query do
               literal(^tree_field),
               ^depth
             ),
+          on: true,
           where: ^where_field,
           distinct: [a.id, cte.starting_unit],
           select: %{
