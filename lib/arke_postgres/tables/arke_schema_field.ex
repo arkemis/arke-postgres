@@ -14,14 +14,11 @@
 
 defmodule ArkePostgres.Tables.ArkeSchemaField do
   use Ecto.Schema
-  import Ecto.Changeset
-
-  @arke_schema_field_fields ~w[arke_schema_id arke_parameter_id metadata]a
 
   @foreign_key_type :string
   schema "arke_schema_field" do
-    belongs_to(:arke_schema, ArkePostgres.ArkeSchema, primary_key: true)
-    belongs_to(:arke_field, ArkePostgres.ArkeField, primary_key: true)
+    belongs_to(:arke_schema, ArkePostgres.Tables.ArkeSchema, primary_key: true)
+    belongs_to(:arke_field, ArkePostgres.Tables.ArkeField, primary_key: true)
     field(:metadata, :map, default: %{})
   end
 end
