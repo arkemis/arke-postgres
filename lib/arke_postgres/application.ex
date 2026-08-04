@@ -17,11 +17,10 @@ defmodule ArkePostgres.Application do
   # for more information on OTP Applications
   @moduledoc false
 
-  import Ecto.Adapters.SQL.Sandbox
   use Application
 
   @impl true
-  def start(type, args) do
+  def start(_type, _args) do
     children = [
       {ArkePostgres.Repo, [show_sensitive_data_on_connection_error: true]}
       # Starts a worker by calling: ArkePostgres.Worker.start_link(arg)

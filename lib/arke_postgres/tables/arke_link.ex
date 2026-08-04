@@ -21,8 +21,8 @@ defmodule ArkePostgres.ArkeLink do
   @foreign_key_type :string
   schema "arke_link" do
     field(:type, :string, default: "link")
-    belongs_to(:parent_id, ArkePostgres.ArkeUnit, primary_key: true)
-    belongs_to(:child_id, ArkePostgres.ArkeUnit, primary_key: true)
+    belongs_to(:parent_id, ArkePostgres.Tables.ArkeUnit, primary_key: true)
+    belongs_to(:child_id, ArkePostgres.Tables.ArkeUnit, primary_key: true)
     field(:metadata, :map, default: %{})
   end
 

@@ -223,4 +223,82 @@ defmodule ArkePostgres.QueryTest do
       assert ArkePostgres.Query.init_unit(nil, nil, @project) == nil
     end
   end
+
+  describe "link queries over the recursive cte" do
+    setup do
+      arke = create_arke(:query_link_arke, :query_link_label)
+
+      for id <- ~w[query_link_parent query_link_child query_link_other] do
+        {:ok, _} = QueryManager.create(@project, arke, %{id: id, query_link_label: id})
+      end
+
+      {:ok, _} =
+        LinkManager.add_node(
+          @project,
+          "query_link_parent",
+          "query_link_child",
+          "query_link_type"
+        )
+
+      %{arke: arke}
+    end
+
+    defp linked(action, direction) do
+      QueryManager.query(project: @project)
+      |> QueryManager.link(%{id: :query_link_parent},
+        depth: 1,
+        direction: direction,
+        type: "query_link_type"
+      )
+      |> then(&ArkePostgres.Query.execute(&1, action))
+    end
+
+    test "returns the linked child and nothing else" do
+      ids = linked(:all, :child) |> Enum.map(&to_string(&1.id))
+
+      assert ids == ["query_link_child"]
+    end
+
+    test "counts only the linked child" do
+      assert linked(:count, :child) == 1
+    end
+
+    test "walks the link backwards from the child" do
+      ids =
+        QueryManager.query(project: @project)
+        |> QueryManager.link(%{id: :query_link_child},
+          depth: 1,
+          direction: :parent,
+          type: "query_link_type"
+        )
+        |> then(&ArkePostgres.Query.execute(&1, :all))
+        |> Enum.map(&to_string(&1.id))
+
+      assert ids == ["query_link_parent"]
+    end
+  end
+
+  describe "table schema associations" do
+    test "arke_link points at units that are ecto schemas" do
+      for field <- [:parent_id, :child_id] do
+        assoc = ArkePostgres.ArkeLink.__schema__(:association, field)
+
+        assert assoc.related == ArkePostgres.Tables.ArkeUnit
+        assert function_exported?(assoc.related, :__schema__, 1)
+      end
+    end
+
+    test "arke_schema_field points at schemas that exist" do
+      for {field, related} <- [
+            arke_schema: ArkePostgres.Tables.ArkeSchema,
+            arke_field: ArkePostgres.Tables.ArkeField
+          ] do
+        assoc = ArkePostgres.Tables.ArkeSchemaField.__schema__(:association, field)
+
+        assert assoc.related == related
+        assert Code.ensure_loaded?(assoc.related)
+        assert function_exported?(assoc.related, :__schema__, 1)
+      end
+    end
+  end
 end
