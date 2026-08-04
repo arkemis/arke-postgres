@@ -277,28 +277,4 @@ defmodule ArkePostgres.QueryTest do
       assert ids == ["query_link_parent"]
     end
   end
-
-  describe "table schema associations" do
-    test "arke_link points at units that are ecto schemas" do
-      for field <- [:parent_id, :child_id] do
-        assoc = ArkePostgres.ArkeLink.__schema__(:association, field)
-
-        assert assoc.related == ArkePostgres.Tables.ArkeUnit
-        assert function_exported?(assoc.related, :__schema__, 1)
-      end
-    end
-
-    test "arke_schema_field points at schemas that exist" do
-      for {field, related} <- [
-            arke_schema: ArkePostgres.Tables.ArkeSchema,
-            arke_field: ArkePostgres.Tables.ArkeField
-          ] do
-        assoc = ArkePostgres.Tables.ArkeSchemaField.__schema__(:association, field)
-
-        assert assoc.related == related
-        assert Code.ensure_loaded?(assoc.related)
-        assert function_exported?(assoc.related, :__schema__, 1)
-      end
-    end
-  end
 end

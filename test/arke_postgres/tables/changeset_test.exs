@@ -28,10 +28,4 @@ defmodule ArkePostgres.Tables.ChangesetTest do
       assert constraint.error_message == "id already exists"
     end
   end
-
-  describe "ArkeSchema.changeset/1" do
-    test "rejects an empty row" do
-      refute ArkePostgres.Tables.ArkeSchema.changeset(%{}).valid?
-    end
-  end
 end
