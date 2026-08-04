@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-08-04
+
+### Changed
+- Drop unused ecto schemas by @ErikFerrari in [#74](https://github.com/arkemis/arke-postgres/pull/74)
+- Clear compiler warnings and gate on them in ci by @ilyichv in [#72](https://github.com/arkemis/arke-postgres/pull/72)
+- Format pass and lint CI leg by @ilyichv in [#70](https://github.com/arkemis/arke-postgres/pull/70)
+- Raise elixir floor to ~> 1.16 by @ilyichv in [#69](https://github.com/arkemis/arke-postgres/pull/69)
+
+### Fixed
+- Generate unit ids through arke by @ilyichv in [#71](https://github.com/arkemis/arke-postgres/pull/71)
+- Type as primary key by @ErikFerrari in [#73](https://github.com/arkemis/arke-postgres/pull/73)
+
+### New Contributors
+* @github-actions[bot] made their first contribution
+
 ## [0.6.0] - 2026-08-03
 
 ### Added
@@ -254,6 +269,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### New Contributors
 * @ErikFerrari made their first contribution
 
+[0.7.0]: https://github.com/arkemis/arke-postgres/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/arkemis/arke-postgres/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/arkemis/arke-postgres/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/arkemis/arke-postgres/compare/v0.4.1...v0.5.0
