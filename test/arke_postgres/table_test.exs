@@ -70,7 +70,12 @@ defmodule ArkePostgres.TableTest do
     Table.insert(@project, @schema, row("table_delete"))
     assert Table.get_by(@project, @schema, @fields, id: "table_delete") != nil
 
-    Table.delete(@project, @schema, id: "table_delete")
+    assert {:ok, nil} = Table.delete(@project, @schema, id: "table_delete")
     assert Table.get_by(@project, @schema, @fields, id: "table_delete") == nil
+  end
+
+  test "delete reports a row that is not there" do
+    assert {:error, [%{context: "delete", message: "item not found"}]} =
+             Table.delete(@project, @schema, id: "table_delete_absent")
   end
 end

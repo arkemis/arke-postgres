@@ -45,6 +45,15 @@ defmodule ArkePostgres.ArkeUnitTest do
       assert length(Enum.uniq(ids)) == 5
     end
 
+    test "takes an id that is already a string", %{arke: arke} do
+      # `Unit.load/2` turns an id into an atom, so a binary one only reaches `insert/3` when
+      # the unit was built by hand.
+      unit = Arke.Core.Unit.load(arke, id: "arke_unit_atom", arke_unit_label: "hello")
+
+      assert {:ok, record} = ArkeUnit.insert(@project, arke, %{unit | id: "arke_unit_binary"})
+      assert record.id == "arke_unit_binary"
+    end
+
     test "returns changeset errors for a duplicate id", %{arke: arke} do
       unit = Arke.Core.Unit.load(arke, id: "arke_unit_dup", arke_unit_label: "hello")
       {:ok, _} = ArkeUnit.insert(@project, arke, unit)
@@ -77,9 +86,16 @@ defmodule ArkePostgres.ArkeUnitTest do
       unit = Arke.Core.Unit.load(arke, id: "arke_unit_delete", arke_unit_label: "x")
       {:ok, _} = ArkeUnit.insert(@project, arke, unit)
 
-      ArkeUnit.delete(@project, arke, unit)
+      assert {:ok, nil} = ArkeUnit.delete(@project, arke, unit)
 
       assert QueryManager.get_by(id: :arke_unit_delete, project: @project) == nil
+    end
+
+    test "reports a unit that is not there", %{arke: arke} do
+      unit = Arke.Core.Unit.load(arke, id: "arke_unit_delete_absent", arke_unit_label: "x")
+
+      assert {:error, [%{context: "delete", message: "item not found"}]} =
+               ArkeUnit.delete(@project, arke, unit)
     end
   end
 
@@ -136,6 +152,15 @@ defmodule ArkePostgres.ArkeUnitTest do
 
     test "encodes nothing from empty data", %{arke: arke} do
       assert ArkeUnit.encode_unit_data(arke, %{}) == %{}
+    end
+
+    test "drops a parameter marked only_runtime" do
+      # `arke_file` links `binary_data` with `only_runtime: true`, so it must never be written.
+      arke = ArkeManager.get(:arke_file, @project)
+
+      encoded = ArkeUnit.encode_unit_data(arke, %{name: "n", binary_data: "raw bytes"})
+
+      assert Map.keys(encoded) == ["name"]
     end
   end
 

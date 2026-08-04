@@ -6,6 +6,8 @@ defmodule ArkePostgres.EnvTest do
 
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureIO
+
   @keys ~w[DB_NAME DB_HOSTNAME DB_USER DB_PASSWORD]
 
   defp without(key, fun) do
@@ -44,5 +46,11 @@ defmodule ArkePostgres.EnvTest do
 
   test "restores cleanly so later tests still see the environment" do
     assert {:ok, nil} = ArkePostgres.check_env()
+  end
+
+  test "init refuses to run with an incomplete environment" do
+    without("DB_NAME", fn ->
+      assert capture_io(fn -> assert ArkePostgres.init() == :error end) =~ "DB_NAME"
+    end)
   end
 end

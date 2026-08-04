@@ -340,6 +340,14 @@ defmodule ArkePostgres.QueryTest do
 
       assert unit == nil
     end
+
+    test "raw returns the statement and its bindings instead of rows", %{arke: arke} do
+      {sql, params} = QueryManager.query(project: @project, arke: arke) |> QueryManager.raw()
+
+      assert sql =~ "SELECT"
+      assert sql =~ "FROM \"arke_unit\""
+      assert params == ["query_exec_arke"]
+    end
   end
 
   describe "get_column/2" do
@@ -388,8 +396,66 @@ defmodule ArkePostgres.QueryTest do
   end
 
   describe "init_unit/3" do
+    setup do
+      %{arke: create_arke(:query_init_arke, :query_init_label)}
+    end
+
+    defp record(data),
+      do: %{
+        id: "query_init_a",
+        arke_id: "query_init_arke",
+        data: data,
+        metadata: %{"tenant" => "acme"},
+        inserted_at: nil,
+        updated_at: nil
+      }
+
+    defp stored(value), do: %{"value" => value, "datetime" => "2026-01-02T03:04:05Z"}
+
     test "returns nil for a missing record" do
       assert ArkePostgres.Query.init_unit(nil, nil, @project) == nil
+    end
+
+    test "projects the parameters the arke declares", %{arke: arke} do
+      unit =
+        ArkePostgres.Query.init_unit(
+          record(%{"query_init_label" => stored("alpha")}),
+          arke,
+          @project
+        )
+
+      assert to_string(unit.id) == "query_init_a"
+      assert unit.data.query_init_label == "alpha"
+    end
+
+    test "reads a parameter the record does not hold as nil", %{arke: arke} do
+      unit = ArkePostgres.Query.init_unit(record(%{}), arke, @project)
+
+      assert unit.data.query_init_label == nil
+    end
+
+    test "drops a column the arke does not declare", %{arke: arke} do
+      data = %{"query_init_label" => stored("alpha"), "not_a_parameter" => stored("x")}
+
+      unit = ArkePostgres.Query.init_unit(record(data), arke, @project)
+
+      refute Map.has_key?(unit.data, :not_a_parameter)
+      refute Map.has_key?(unit.data, "not_a_parameter")
+    end
+
+    test "injects the project into the metadata", %{arke: arke} do
+      unit = ArkePostgres.Query.init_unit(record(%{}), arke, @project)
+
+      assert unit.metadata.project == @project
+      assert unit.metadata["tenant"] == "acme"
+    end
+
+    test "resolves the arke from the record when none is given" do
+      unit =
+        ArkePostgres.Query.init_unit(record(%{"query_init_label" => stored("a")}), nil, @project)
+
+      assert unit.arke_id == :query_init_arke
+      assert unit.data.query_init_label == "a"
     end
   end
 
