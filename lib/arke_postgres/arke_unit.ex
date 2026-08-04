@@ -17,8 +17,6 @@ defmodule ArkePostgres.ArkeUnit do
   import Ecto.Query
   alias Arke.Utils.ErrorGenerator, as: Error
 
-  @record_fields [:id, :data, :metadata, :inserted_at, :updated_at]
-
   def insert(project, arke, %{data: data} = unit) do
     row = [
       id: handle_id(unit.id),
@@ -63,7 +61,7 @@ defmodule ArkePostgres.ArkeUnit do
   def update_key(
         arke,
         old_unit,
-        %{data: data, metadata: %{project: project} = metadata} = unit,
+        %{data: data, metadata: %{project: project} = _metadata} = unit,
         where \\ []
       ) do
     where = Keyword.put_new(where, :arke_id, Atom.to_string(unit.arke_id))
@@ -161,16 +159,6 @@ defmodule ArkePostgres.ArkeUnit do
 
   defp get_unit_field_value(arke_value) do
     arke_value
-  end
-
-  defp pop_datetime(data, key) do
-    {datetime, data} = Map.pop(data, key, Arke.Utils.DatetimeHandler.now(:datetime))
-    {datetime || Arke.Utils.DatetimeHandler.now(:datetime), data}
-  end
-
-  defp pop_map(data, key) do
-    {map, data} = Map.pop(data, key, %{})
-    {map || %{}, data}
   end
 
   def diff_keys(old_data, new_data, keys) do

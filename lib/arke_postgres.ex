@@ -13,7 +13,6 @@
 # limitations under the License.
 
 defmodule ArkePostgres do
-  alias Arke.Boundary.{GroupManager, ArkeManager}
   alias ArkePostgres.{Table, ArkeUnit, Query}
 
   def init() do
@@ -31,7 +30,7 @@ defmodule ArkePostgres do
           :ok
         rescue
           err in DBConnection.ConnectionError ->
-            %{message: message, reason: reason} = err
+            %{message: message, reason: _reason} = err
 
             parsed_message = %{
               context: "db_connection_error",
@@ -42,7 +41,7 @@ defmodule ArkePostgres do
             :error
 
           err in Postgrex.Error ->
-            %{message: message, postgres: %{code: code, message: postgres_message}} = err
+            %{message: message, postgres: %{code: _code, message: postgres_message}} = err
 
             parsed_message = %{
               context: "postgrex_error",
@@ -128,19 +127,19 @@ defmodule ArkePostgres do
     end
   end
 
-  defp handle_create(proj, arke, unit) do
+  defp handle_create(_proj, _arke, _unit) do
     {:error, "arke type not supported"}
   end
 
   def update(project, %{arke_id: arke_id} = unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
-    {:ok, unit} = handle_update(project, arke, unit)
+    {:ok, _unit} = handle_update(project, arke, unit)
   end
 
   def handle_update(
         project,
         %{data: %{type: "table"}} = arke,
-        %{data: data, metadata: metadata} = unit
+        %{data: _data, metadata: metadata} = unit
       ) do
     data =
       unit
@@ -166,13 +165,13 @@ defmodule ArkePostgres do
 
   def update_key(%{arke_id: arke_id, metadata: %{project: project}} = old_unit, new_unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
-    {:ok, unit} = handle_update_key(arke, old_unit, new_unit)
+    {:ok, _unit} = handle_update_key(arke, old_unit, new_unit)
   end
 
   def handle_update_key(
         %{data: %{type: "table"}} = arke,
         _old_unit,
-        %{data: data, metadata: %{project: project} = metadata} = new_unit
+        %{data: _data, metadata: %{project: project} = metadata} = new_unit
       ) do
     data =
       new_unit
@@ -227,10 +226,7 @@ defmodule ArkePostgres do
     {:error, "arke type not supported"}
   end
 
-  defp filter_primary_keys(
-         %{arke_id: arke_id, metadata: %{project: project}} = unit,
-         is_primary \\ true
-       ) do
+  defp filter_primary_keys(%{arke_id: arke_id, metadata: %{project: project}} = unit, is_primary) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
 
     parameters =
@@ -291,7 +287,7 @@ defmodule ArkePostgres do
 
       err in Postgrex.Error ->
         IO.inspect("Postgrex.Error")
-        %{message: message, postgres: %{code: code, message: postgres_message}} = err
+        %{message: message, postgres: %{code: _code, message: postgres_message}} = err
         parsed_message = %{context: "postgrex_error", message: "#{message || postgres_message}"}
         IO.inspect(parsed_message, syntax_colors: [string: :red, atom: :cyan])
         :error
@@ -306,7 +302,7 @@ defmodule ArkePostgres do
   # TODO handle exception
   def create_project(_), do: nil
 
-  def delete_project(%{arke_id: :arke_project, id: id} = unit) do
+  def delete_project(%{arke_id: :arke_project, id: id} = _unit) do
     sql = "DROP SCHEMA \"#{id}\" CASCADE"
     Ecto.Adapters.SQL.query(ArkePostgres.Repo, sql, [])
   end

@@ -13,8 +13,6 @@
 # limitations under the License.
 
 defmodule Mix.Tasks.ArkePostgres.CreateProject do
-  alias Arke.QueryManager
-  alias Arke.Boundary.ArkeManager
   use Mix.Task
 
   @shortdoc "Creates a new project"
