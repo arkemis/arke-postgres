@@ -17,7 +17,6 @@ defmodule ArkePostgres.Tables.ArkeUnit do
   import Ecto.Changeset
 
   @arke_record_fields ~w[id arke_id data metadata]a
-  @timestamps ~w[inserted_at updated_at]a
 
   @primary_key {:id, :string, []}
   schema "arke_unit" do

@@ -18,8 +18,6 @@
   migrations: there is no auto-DDL from parameter definitions. The symptom of
   a missing one is `Postgrex.Error: relation "my_table" does not exist`. The
   table name must equal the arke id.
-- Ignore `priv/repo/structure.sql` — it is a stale dump of a legacy data model
-  (`arke_schema`/`arke_field`) that nothing applies. Likewise, never use the
-  legacy Ecto schemas `ArkePostgres.Tables.ArkeSchema`, `.ArkeField`,
-  `.ArkeSchemaField` and `ArkePostgres.ArkeLink` — their tables don't exist
+- Never use the legacy Ecto schemas `ArkePostgres.Tables.ArkeSchema`,
+  `.ArkeField`, `.ArkeSchemaField` and `ArkePostgres.ArkeLink` — their tables don't exist
   and their associations point at missing modules.
