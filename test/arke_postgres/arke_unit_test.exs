@@ -29,7 +29,9 @@ defmodule ArkePostgres.ArkeUnitTest do
       assert {:ok, record} = ArkeUnit.insert(@project, arke, unit)
 
       assert String.length(record.id) == 36
-      assert record.id =~ ~r/^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+      assert record.id =~
+               ~r/^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
     end
 
     test "generates a distinct id per insert", %{arke: arke} do
