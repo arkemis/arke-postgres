@@ -92,6 +92,22 @@ defmodule ArkePostgres do
     Arke.handle_manager(groups, project_id, :group)
   end
 
+  @doc """
+  Transaction seam for the arke write pipeline: `{:error, _}` from the wrapped
+  function rolls the transaction back and is returned as-is.
+  """
+  def transaction(fun, opts \\ []) do
+    ArkePostgres.Repo.transaction(
+      fn ->
+        case fun.() do
+          {:ok, value} -> value
+          {:error, reason} -> ArkePostgres.Repo.rollback(reason)
+        end
+      end,
+      opts
+    )
+  end
+
   def create(project, %{arke_id: arke_id} = unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
 

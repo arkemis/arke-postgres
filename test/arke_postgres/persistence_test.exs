@@ -91,6 +91,43 @@ defmodule ArkePostgres.PersistenceTest do
     end
   end
 
+  describe "transaction/2" do
+    test "commits when the function returns {:ok, _}", %{arke: arke} do
+      {:ok, unit} =
+        ArkePostgres.transaction(fn ->
+          ArkePostgres.create(@project, unit_for(arke, "txn_commit"))
+        end)
+
+      assert to_string(unit.id) == "txn_commit"
+      assert QueryManager.get_by(id: :txn_commit, project: @project) != nil
+    end
+
+    test "rolls back every write when the function returns {:error, _}", %{arke: arke} do
+      assert {:error, :nope} =
+               ArkePostgres.transaction(fn ->
+                 {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_rollback"))
+                 {:error, :nope}
+               end)
+
+      assert QueryManager.get_by(id: :txn_rollback, project: @project) == nil
+    end
+
+    test "a nested transaction joins the outer one", %{arke: arke} do
+      assert {:error, :inner} =
+               ArkePostgres.transaction(fn ->
+                 {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_outer"))
+
+                 ArkePostgres.transaction(fn ->
+                   {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_inner"))
+                   {:error, :inner}
+                 end)
+               end)
+
+      assert QueryManager.get_by(id: :txn_outer, project: @project) == nil
+      assert QueryManager.get_by(id: :txn_inner, project: @project) == nil
+    end
+  end
+
   defp unit_for(arke, id, label \\ "before") do
     Arke.Core.Unit.load(arke, id: id, persistence_label: label)
   end

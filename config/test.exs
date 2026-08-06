@@ -13,6 +13,7 @@ config :arke_postgres, ArkePostgres.Repo,
 config :arke,
   persistence: %{
     arke_postgres: %{
+      transaction: &ArkePostgres.transaction/2,
       create: &ArkePostgres.create/2,
       update: &ArkePostgres.update/2,
       update_key: &ArkePostgres.update_key/2,
