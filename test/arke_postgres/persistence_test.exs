@@ -112,6 +112,35 @@ defmodule ArkePostgres.PersistenceTest do
       assert QueryManager.get_by(id: :txn_rollback, project: @project) == nil
     end
 
+    test "translates a raised constraint violation after rollback", %{arke: arke} do
+      {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_constraint"))
+
+      row = [
+        id: "txn_constraint",
+        arke_id: "persistence_test_arke",
+        data: %{},
+        metadata: %{},
+        inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+        updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      ]
+
+      assert {:error, %{constraint: constraint, message: _}} =
+               ArkePostgres.transaction(fn ->
+                 ArkePostgres.Table.insert(@project, %{id: :arke_unit}, row)
+               end)
+
+      assert constraint =~ "arke_unit"
+    end
+
+    test "lock: true renders FOR UPDATE" do
+      {sql, _params} =
+        Arke.QueryManager.query(project: @project, arke: nil)
+        |> Arke.Core.Query.set_lock(true)
+        |> ArkePostgres.Query.execute(:raw)
+
+      assert sql =~ "FOR UPDATE"
+    end
+
     test "a nested transaction joins the outer one", %{arke: arke} do
       assert {:error, :inner} =
                ArkePostgres.transaction(fn ->

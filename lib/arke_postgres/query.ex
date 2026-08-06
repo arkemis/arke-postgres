@@ -30,7 +30,11 @@ defmodule ArkePostgres.Query do
     |> handle_orders(orders)
     |> handle_offset(offset)
     |> handle_limit(limit)
+    |> handle_lock(arke_query)
   end
+
+  defp handle_lock(query, %{lock: true}), do: lock(query, "FOR UPDATE")
+  defp handle_lock(query, _arke_query), do: query
 
   def execute(query, :raw),
     do: Ecto.Adapters.SQL.to_sql(:all, ArkePostgres.Repo, generate_query(query, :raw))

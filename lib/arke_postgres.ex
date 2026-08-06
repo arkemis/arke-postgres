@@ -94,7 +94,9 @@ defmodule ArkePostgres do
 
   @doc """
   Transaction seam for the arke write pipeline: `{:error, _}` from the wrapped
-  function rolls the transaction back and is returned as-is.
+  function rolls the transaction back and is returned as-is. A raised
+  constraint violation aborts the transaction and is translated to
+  `{:error, %{constraint: ..., message: ...}}` after the rollback.
   """
   def transaction(fun, opts \\ []) do
     ArkePostgres.Repo.transaction(
@@ -102,10 +104,23 @@ defmodule ArkePostgres do
         case fun.() do
           {:ok, value} -> value
           {:error, reason} -> ArkePostgres.Repo.rollback(reason)
+          other -> other
         end
       end,
       opts
     )
+  rescue
+    e in Postgrex.Error ->
+      case e.postgres do
+        %{constraint: constraint, message: message} ->
+          {:error, %{constraint: constraint, message: message}}
+
+        _ ->
+          reraise e, __STACKTRACE__
+      end
+
+    e in Ecto.ConstraintError ->
+      {:error, %{constraint: e.constraint, message: e.message}}
   end
 
   def create(project, %{arke_id: arke_id} = unit) do
