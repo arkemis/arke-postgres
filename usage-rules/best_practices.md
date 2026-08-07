@@ -8,17 +8,16 @@
   encoded unit. Updating with a partially-populated `%Unit{}` drops the
   missing fields. Use `Arke.QueryManager.update/2` (which loads first) or
   `update_key/2` for surgical `jsonb_set` writes.
-- Update of a non-existent unit succeeds silently in JSONB mode
-  (`Repo.update_all` returns `{0, nil}`) — verify existence first when it
-  matters.
+- Update of a non-existent unit returns `{:error, _}` ("item not found",
+  ≥ 0.8.0; older versions succeeded silently) — same for table-mode writes,
+  which now surface DB errors instead of returning `{:ok, unit}` regardless.
 - `delete/2` returns `{:error, "item not found"}` on zero rows but cannot tell
   you why (missing unit vs wrong arke vs wrong project schema) — check the
   project/prefix before debugging the unit.
-- Table-mode (`type: "table"`) create/update/delete swallow DB errors and
-  return `{:ok, unit}` regardless — verify writes on relational arkes.
 - Changeset errors are flattened into plain strings
-  (`"id: id already exists"`); do not expect structured
-  `{field, {msg, opts}}` tuples.
+  (`"id: id already exists"`); constraint violations RAISED inside a
+  transaction are translated to `{:error, %{constraint: name, message: msg}}`
+  at the boundary. Do not expect structured `{field, {msg, opts}}` tuples.
 - Unsupported arke types make `ArkePostgres.update/2` raise `MatchError`
   instead of returning `{:error, _}` — only `"arke"` and `"table"` types
   exist.

@@ -1,8 +1,10 @@
 # Migrations
 
-- The package ships exactly one migration (creating `arke_unit` and
-  `arke_link`). It runs automatically for every new project schema during
-  `create_project`.
+- The package ships two migrations: the initial one (creating `arke_unit` and
+  `arke_link`) and the `arke_link` composite primary key
+  (`(type, parent_id, child_id)`, ≥ 0.8.0). They run automatically for every
+  NEW project schema during `create_project`; on upgrade you must apply the
+  new one to every EXISTING schema (including `arke_system`) yourself.
 - Custom migrations go in `priv/repo/migrations/` and are plain
   `use Ecto.Migration` modules. Never hardcode a `prefix:` inside them — the
   migrator supplies the prefix per project schema.

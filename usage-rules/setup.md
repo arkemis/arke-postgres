@@ -17,6 +17,7 @@
   config :arke,
     persistence: %{
       arke_postgres: %{
+        transaction: &ArkePostgres.transaction/2,
         create: &ArkePostgres.create/2,
         update: &ArkePostgres.update/2,
         update_key: &ArkePostgres.update_key/2,
@@ -33,6 +34,11 @@
 - Do NOT omit `update_key:`, `repo:` or `init:` even though older examples do:
   `update_key` is required by `Arke.QueryManager.update_key/2` (arke ≥ 0.6.0),
   `repo` by `mix arke.seed_project`, and `init` by `mix arke.export_data`.
+- Do NOT omit `transaction:` (arke ≥ 0.9.0): without it the write pipeline
+  runs on an identity seam — no rollback, no `after_commit` deferral.
+  `ArkePostgres.transaction/2` rolls back on `{:error, _}` and translates
+  raised constraint violations to
+  `{:error, %{constraint: name, message: msg}}` after the rollback.
 - Configure the repo and register it for `mix ecto.*`:
 
   ```elixir
