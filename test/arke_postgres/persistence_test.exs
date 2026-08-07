@@ -50,6 +50,11 @@ defmodule ArkePostgres.PersistenceTest do
       assert QueryManager.get_by(id: :persist_update_b, project: @project).data.persistence_label ==
                "before"
     end
+
+    test "returns an error when the unit does not exist", %{arke: arke} do
+      assert {:error, errors} = ArkePostgres.update(@project, unit_for(arke, "persist_missing"))
+      refute Enum.empty?(errors)
+    end
   end
 
   describe "update_key/2" do

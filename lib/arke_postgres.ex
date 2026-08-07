@@ -288,6 +288,8 @@ defmodule ArkePostgres do
 
   defp handle_changeset_errros(errors) when is_binary(errors), do: errors
 
+  defp handle_changeset_errros([%{context: _, message: _} | _] = errors), do: errors
+
   defp handle_changeset_errros(errors) do
     Enum.map(errors, fn {field, detail} ->
       "#{field}: #{render_detail(detail)}"
