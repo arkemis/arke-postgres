@@ -32,6 +32,9 @@
   query(project: :p, arke: :person) |> where(age__gte: 18) |> pseudo_query()    # Ecto query
   ```
 
+- `lock: true` on the Arke query (set via `QueryManager.get_by(..., lock: true)`)
+  renders `SELECT ... FOR UPDATE`. Postgres rejects `FOR UPDATE` on queries
+  with outer joins — do not combine it with link-path filters.
 - `:eq` on a `multiple: true` parameter compiles to `jsonb_exists/2` —
   equality behaves as "array contains". `:in` on JSONB arrays is not
   supported.

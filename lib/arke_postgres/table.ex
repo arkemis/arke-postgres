@@ -27,12 +27,19 @@ defmodule ArkePostgres.Table do
   end
 
   def insert(project, schema, data) do
-    ArkePostgres.Repo.insert_all(Atom.to_string(schema.id), [data], prefix: project)
+    case ArkePostgres.Repo.insert_all(Atom.to_string(schema.id), [data], prefix: project) do
+      {n, _} when n > 0 -> {:ok, nil}
+      _ -> Error.create(:insert, "no row inserted")
+    end
   end
 
   def update(project, schema, data, where \\ []) do
     query = from(Atom.to_string(schema.id), where: ^where, update: [set: ^data])
-    ArkePostgres.Repo.update_all(query, [], prefix: project)
+
+    case ArkePostgres.Repo.update_all(query, [], prefix: project) do
+      {0, _} -> Error.create(:update, "item not found")
+      {_, _} -> {:ok, nil}
+    end
   end
 
   def delete(project, schema, where) do

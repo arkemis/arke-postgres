@@ -24,7 +24,7 @@ defmodule ArkePostgres.TableTest do
   end
 
   test "insert then get_by returns the row" do
-    assert {1, _} = Table.insert(@project, @schema, row("table_insert"))
+    assert {:ok, nil} = Table.insert(@project, @schema, row("table_insert"))
 
     row = Table.get_by(@project, @schema, @fields, id: "table_insert")
 
@@ -56,7 +56,7 @@ defmodule ArkePostgres.TableTest do
     Table.insert(@project, @schema, row("table_update", %{"k" => "before"}))
     Table.insert(@project, @schema, row("table_untouched", %{"k" => "before"}))
 
-    assert {1, _} =
+    assert {:ok, nil} =
              Table.update(@project, @schema, [data: %{"k" => "after"}], id: "table_update")
 
     assert Table.get_by(@project, @schema, @fields, id: "table_update").data == %{"k" => "after"}
@@ -64,6 +64,11 @@ defmodule ArkePostgres.TableTest do
     assert Table.get_by(@project, @schema, @fields, id: "table_untouched").data == %{
              "k" => "before"
            }
+  end
+
+  test "update on a missing row returns {:error, _}" do
+    assert {:error, _} =
+             Table.update(@project, @schema, [data: %{"k" => "after"}], id: "table_absent")
   end
 
   test "delete removes the row" do

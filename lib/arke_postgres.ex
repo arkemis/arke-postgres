@@ -92,6 +92,37 @@ defmodule ArkePostgres do
     Arke.handle_manager(groups, project_id, :group)
   end
 
+  @doc """
+  Transaction seam for the arke write pipeline: `{:error, _}` from the wrapped
+  function rolls the transaction back and is returned as-is. A raised
+  constraint violation aborts the transaction and is translated to
+  `{:error, %{constraint: ..., message: ...}}` after the rollback.
+  """
+  def transaction(fun, opts \\ []) do
+    ArkePostgres.Repo.transaction(
+      fn ->
+        case fun.() do
+          {:ok, value} -> value
+          {:error, reason} -> ArkePostgres.Repo.rollback(reason)
+          other -> other
+        end
+      end,
+      opts
+    )
+  rescue
+    e in Postgrex.Error ->
+      case e.postgres do
+        %{constraint: constraint, message: message} ->
+          {:error, %{constraint: constraint, message: message}}
+
+        _ ->
+          reraise e, __STACKTRACE__
+      end
+
+    e in Ecto.ConstraintError ->
+      {:error, %{constraint: e.constraint, message: e.message}}
+  end
+
   def create(project, %{arke_id: arke_id} = unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
 
@@ -112,8 +143,8 @@ defmodule ArkePostgres do
        ) do
     # todo: remove once the project is not needed anymore
     data = data |> Map.merge(%{metadata: Map.delete(metadata, :project)}) |> data_as_klist
-    Table.insert(project, arke, data)
-    {:ok, unit}
+
+    with {:ok, _} <- Table.insert(project, arke, data), do: {:ok, unit}
   end
 
   defp handle_create(project, %{data: %{type: "arke"}} = arke, unit) do
@@ -133,7 +164,11 @@ defmodule ArkePostgres do
 
   def update(project, %{arke_id: arke_id} = unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
-    {:ok, _unit} = handle_update(project, arke, unit)
+
+    case handle_update(project, arke, unit) do
+      {:ok, unit} -> {:ok, unit}
+      {:error, errors} -> {:error, handle_changeset_errros(errors)}
+    end
   end
 
   def handle_update(
@@ -150,13 +185,11 @@ defmodule ArkePostgres do
 
     where = unit |> filter_primary_keys(true) |> data_as_klist
 
-    Table.update(project, arke, data, where)
-    {:ok, unit}
+    with {:ok, _} <- Table.update(project, arke, data, where), do: {:ok, unit}
   end
 
   def handle_update(project, %{data: %{type: "arke"}} = arke, unit) do
-    ArkeUnit.update(project, arke, unit)
-    {:ok, unit}
+    with {:ok, _} <- ArkeUnit.update(project, arke, unit), do: {:ok, unit}
   end
 
   def handle_update(_, _, _) do
@@ -165,7 +198,11 @@ defmodule ArkePostgres do
 
   def update_key(%{arke_id: arke_id, metadata: %{project: project}} = old_unit, new_unit) do
     arke = Arke.Boundary.ArkeManager.get(arke_id, project)
-    {:ok, _unit} = handle_update_key(arke, old_unit, new_unit)
+
+    case handle_update_key(arke, old_unit, new_unit) do
+      {:ok, unit} -> {:ok, unit}
+      {:error, errors} -> {:error, handle_changeset_errros(errors)}
+    end
   end
 
   def handle_update_key(
@@ -182,8 +219,7 @@ defmodule ArkePostgres do
 
     where = new_unit |> filter_primary_keys(true) |> data_as_klist
 
-    Table.update(project, arke, data, where)
-    {:ok, new_unit}
+    with {:ok, _} <- Table.update(project, arke, data, where), do: {:ok, new_unit}
   end
 
   def handle_update_key(
@@ -191,8 +227,7 @@ defmodule ArkePostgres do
         old_unit,
         new_unit
       ) do
-    ArkeUnit.update_key(arke, old_unit, new_unit)
-    {:ok, new_unit}
+    with {:ok, _} <- ArkeUnit.update_key(arke, old_unit, new_unit), do: {:ok, new_unit}
   end
 
   def handle_update_key(_arke, _old_unit, _new_unit) do
@@ -252,6 +287,8 @@ defmodule ArkePostgres do
   end
 
   defp handle_changeset_errros(errors) when is_binary(errors), do: errors
+
+  defp handle_changeset_errros([%{context: _, message: _} | _] = errors), do: errors
 
   defp handle_changeset_errros(errors) do
     Enum.map(errors, fn {field, detail} ->

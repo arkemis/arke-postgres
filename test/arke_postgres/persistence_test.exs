@@ -50,6 +50,11 @@ defmodule ArkePostgres.PersistenceTest do
       assert QueryManager.get_by(id: :persist_update_b, project: @project).data.persistence_label ==
                "before"
     end
+
+    test "returns an error when the unit does not exist", %{arke: arke} do
+      assert {:error, errors} = ArkePostgres.update(@project, unit_for(arke, "persist_missing"))
+      refute Enum.empty?(errors)
+    end
   end
 
   describe "update_key/2" do
@@ -88,6 +93,72 @@ defmodule ArkePostgres.PersistenceTest do
       ArkePostgres.delete(@project, unit)
 
       assert QueryManager.get_by(id: :persist_delete_b, project: @project) != nil
+    end
+  end
+
+  describe "transaction/2" do
+    test "commits when the function returns {:ok, _}", %{arke: arke} do
+      {:ok, unit} =
+        ArkePostgres.transaction(fn ->
+          ArkePostgres.create(@project, unit_for(arke, "txn_commit"))
+        end)
+
+      assert to_string(unit.id) == "txn_commit"
+      assert QueryManager.get_by(id: :txn_commit, project: @project) != nil
+    end
+
+    test "rolls back every write when the function returns {:error, _}", %{arke: arke} do
+      assert {:error, :nope} =
+               ArkePostgres.transaction(fn ->
+                 {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_rollback"))
+                 {:error, :nope}
+               end)
+
+      assert QueryManager.get_by(id: :txn_rollback, project: @project) == nil
+    end
+
+    test "translates a raised constraint violation after rollback", %{arke: arke} do
+      {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_constraint"))
+
+      row = [
+        id: "txn_constraint",
+        arke_id: "persistence_test_arke",
+        data: %{},
+        metadata: %{},
+        inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+        updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      ]
+
+      assert {:error, %{constraint: constraint, message: _}} =
+               ArkePostgres.transaction(fn ->
+                 ArkePostgres.Table.insert(@project, %{id: :arke_unit}, row)
+               end)
+
+      assert constraint =~ "arke_unit"
+    end
+
+    test "lock: true renders FOR UPDATE" do
+      {sql, _params} =
+        Arke.QueryManager.query(project: @project, arke: nil)
+        |> Arke.Core.Query.set_lock(true)
+        |> ArkePostgres.Query.execute(:raw)
+
+      assert sql =~ "FOR UPDATE"
+    end
+
+    test "a nested transaction joins the outer one", %{arke: arke} do
+      assert {:error, :inner} =
+               ArkePostgres.transaction(fn ->
+                 {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_outer"))
+
+                 ArkePostgres.transaction(fn ->
+                   {:ok, _} = ArkePostgres.create(@project, unit_for(arke, "txn_inner"))
+                   {:error, :inner}
+                 end)
+               end)
+
+      assert QueryManager.get_by(id: :txn_outer, project: @project) == nil
+      assert QueryManager.get_by(id: :txn_inner, project: @project) == nil
     end
   end
 

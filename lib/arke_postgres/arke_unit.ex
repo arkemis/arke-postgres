@@ -55,7 +55,11 @@ defmodule ArkePostgres.ArkeUnit do
     ]
 
     query = from("arke_unit", where: ^where, update: [set: ^row])
-    ArkePostgres.Repo.update_all(query, [], prefix: project)
+
+    case ArkePostgres.Repo.update_all(query, [], prefix: project) do
+      {0, _} -> Error.create(:update, "item not found")
+      {_, _} -> {:ok, unit}
+    end
   end
 
   def update_key(
@@ -97,7 +101,10 @@ defmodule ArkePostgres.ArkeUnit do
         ]
       )
 
-    ArkePostgres.Repo.update_all(query, [], prefix: project)
+    case ArkePostgres.Repo.update_all(query, [], prefix: project) do
+      {0, _} -> Error.create(:update, "item not found")
+      {_, _} -> {:ok, unit}
+    end
   end
 
   def delete(project, arke, unit) do

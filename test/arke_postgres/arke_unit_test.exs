@@ -65,10 +65,16 @@ defmodule ArkePostgres.ArkeUnitTest do
           updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
         )
 
-      ArkeUnit.update(@project, arke, updated)
+      assert {:ok, _} = ArkeUnit.update(@project, arke, updated)
 
       assert QueryManager.get_by(id: :arke_unit_update, project: @project).data.arke_unit_label ==
                "after"
+    end
+
+    test "returns {:error, _} when no row matches", %{arke: arke} do
+      unit = Arke.Core.Unit.load(arke, id: "arke_unit_missing", arke_unit_label: "x")
+
+      assert {:error, _} = ArkeUnit.update(@project, arke, unit)
     end
   end
 
