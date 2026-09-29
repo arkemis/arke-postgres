@@ -31,11 +31,15 @@ defmodule ArkePostgres.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ArkePostgres.Supervisor]
 
-    link = Supervisor.start_link(children, opts)
+    with {:ok, pid} <- Supervisor.start_link(children, opts) do
+      case ArkePostgres.init() do
+        :error ->
+          Supervisor.stop(pid)
+          {:error, :init_failed}
 
-    case ArkePostgres.init() do
-      :error -> System.halt(0)
-      _ -> link
+        _ ->
+          {:ok, pid}
+      end
     end
   end
 
