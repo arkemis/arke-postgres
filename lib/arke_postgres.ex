@@ -30,11 +30,9 @@ defmodule ArkePostgres do
           :ok
         rescue
           err in DBConnection.ConnectionError ->
-            %{message: message, reason: _reason} = err
-
             parsed_message = %{
               context: "db_connection_error",
-              message: "error: #{err}, msg: #{message}"
+              message: Exception.message(err)
             }
 
             IO.inspect(parsed_message, syntax_colors: [string: :red, atom: :cyan])
